@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Phone, Mail, Check, ChevronDown, X as XIcon } from "lucide-react";
+import { MapPin, Phone, Mail, Check, ChevronDown, X as XIcon, Loader2 } from "lucide-react";
 import { SectionHeading } from "../ui/SectionHeading";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,7 @@ export function Contact() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [showError, setShowError] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,14 +43,43 @@ export function Contact() {
     if (showError) setShowError(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (selectedServices.length === 0) {
       setShowError(true);
       return;
     }
-    // Handle form submission logic here
-    alert("Form submitted successfully!");
+    
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      message: formData.get("message"),
+      services: selectedServices.join(", ")
+    };
+
+    try {
+      const res = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (res.ok) {
+        alert("Thanks for reaching out! Your request was sent successfully.");
+        // Reset form
+        (e.target as HTMLFormElement).reset();
+        setSelectedServices([]);
+      } else {
+        alert("Failed to send your request. Please try again.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -122,26 +152,29 @@ export function Contact() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="flex flex-col justify-center"
           >
-            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-3xl p-8 sm:p-10 border border-border shadow-xl">
+            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-3xl p-8 sm:p-10 border border-border shadow-xl relative overflow-hidden">
               <h3 className="text-2xl font-bold mb-6">Send us a Message</h3>
               
-              <div className="space-y-4">
+              <div className="space-y-4 relative z-10">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name <span className="text-red-500">*</span></label>
-                  <input required type="text" id="name" className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm" placeholder="John Doe" />
+                  <input required type="text" id="name" name="name" className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm" placeholder="John Doe" disabled={isSubmitting} />
                 </div>
                 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email Address <span className="text-red-500">*</span></label>
-                  <input required type="email" id="email" className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm" placeholder="john@company.com" />
+                  <input required type="email" id="email" name="email" className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm" placeholder="john@company.com" disabled={isSubmitting} />
                 </div>
 
                 <div className="relative" ref={dropdownRef}>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Services Interested In <span className="text-red-500">*</span></label>
                   
                   <div 
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 cursor-pointer flex justify-between items-center transition-all min-h-[46px]"
+                    onClick={() => !isSubmitting && setIsOpen(!isOpen)}
+                    className={cn(
+                      "w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 cursor-pointer flex justify-between items-center transition-all min-h-[46px]",
+                      isSubmitting && "opacity-50 cursor-not-allowed"
+                    )}
                   >
                     <div className="flex flex-wrap gap-1">
                       {selectedServices.length === 0 ? (
@@ -154,9 +187,10 @@ export function Contact() {
                               type="button" 
                               onClick={(e) => { 
                                 e.stopPropagation(); 
-                                toggleService(srv); 
+                                if (!isSubmitting) toggleService(srv); 
                               }} 
                               className="ml-1.5 hover:text-primary/70 focus:outline-none"
+                              disabled={isSubmitting}
                             >
                               <XIcon size={12} strokeWidth={3} />
                             </button>
@@ -168,7 +202,7 @@ export function Contact() {
                   </div>
 
                   <AnimatePresence>
-                    {isOpen && (
+                    {isOpen && !isSubmitting && (
                       <motion.div
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -201,11 +235,20 @@ export function Contact() {
 
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">How can we help?</label>
-                  <textarea id="message" rows={3} className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none text-sm" placeholder="Tell us about your business needs..."></textarea>
+                  <textarea id="message" name="message" rows={3} className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none text-sm" placeholder="Tell us about your business needs..." disabled={isSubmitting}></textarea>
                 </div>
 
-                <button type="submit" className="w-full py-4 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 pt-4 mt-2">
-                  Submit Request
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="w-full flex justify-center items-center py-4 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 pt-4 mt-2 disabled:opacity-70"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Sending...
+                    </>
+                  ) : "Submit Request"}
                 </button>
               </div>
             </form>
