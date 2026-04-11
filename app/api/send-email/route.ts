@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { getConsultationEmailTemplate } from "@/lib/email-templates";
 
 export async function POST(request: Request) {
   try {
@@ -23,14 +24,7 @@ export async function POST(request: Request) {
       replyTo: email,
       subject: `New Contact Form Submission from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\nServices: ${services || "None selected"}\nMessage: ${message}`,
-      html: `
-        <h2>New Form Submission</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-        <p><strong>Services Interested In:</strong> ${services || "None selected"}</p>
-        <p><strong>Message:</strong></p>
-        <p>${message ? message.replace(/\n/g, "<br>") : "No additional message."}</p>
-      `,
+      html: getConsultationEmailTemplate(name, email, services, message),
     };
 
     await transporter.sendMail(mailOptions);
