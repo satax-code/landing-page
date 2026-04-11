@@ -11,6 +11,7 @@ import {
   X as XIcon,
   Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { SectionHeading } from "../ui/SectionHeading";
 import { cn } from "@/lib/utils";
 
@@ -134,7 +135,9 @@ export function Contact() {
       });
 
       if (res.ok) {
-        alert("Thanks for reaching out! Your request was sent successfully.");
+        toast.success("Request sent successfully!", {
+          description: "We'll be in touch with you shortly."
+        });
         // Reset form
         setFormData({
           name: "",
@@ -145,11 +148,15 @@ export function Contact() {
         });
         setSelectedServices([]);
       } else {
-        alert("Failed to send your request. Please try again.");
+        toast.error("Message failed to send.", {
+          description: "Please try again later."
+        });
       }
     } catch (error) {
       console.error(error);
-      alert("An unexpected error occurred. Please try again.");
+      toast.error("An unexpected error occurred.", {
+        description: "Please check your network and try again."
+      });
     } finally {
       setIsSubmitting(false);
     }
