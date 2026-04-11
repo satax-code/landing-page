@@ -4,7 +4,7 @@ import { getConsultationEmailTemplate } from "@/lib/email-templates";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, message, services } = await request.json();
+    const { name, email, phone, message, services } = await request.json();
 
     // Create transporter
     const transporter = nodemailer.createTransport({
@@ -23,8 +23,8 @@ export async function POST(request: Request) {
       to: process.env.GMAIL_USER, // Your email where you receive submissions
       replyTo: email,
       subject: `New Contact Form Submission from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\nServices: ${services || "None selected"}\nMessage: ${message}`,
-      html: getConsultationEmailTemplate(name, email, services, message),
+      text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nServices: ${services || "None selected"}\nMessage: ${message}`,
+      html: getConsultationEmailTemplate(name, email, phone, services, message),
     };
 
     await transporter.sendMail(mailOptions);

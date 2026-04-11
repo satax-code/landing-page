@@ -1,15 +1,16 @@
 export function getConsultationEmailTemplate(
   name: string,
   email: string,
+  phone: string,
   services: string,
   message: string,
 ) {
   const formattedServices = services
     ? services
         .split(", ")
-        .map((s) => `• ${s}`)
-        .join("\n")
-    : "None selected";
+        .map((s) => `<li>${s.trim()}</li>`)
+        .join("")
+    : "<li>No specific services selected</li>";
 
   const formattedMessage = message
     ? message.replace(/\n/g, "<br>")
@@ -28,18 +29,36 @@ export function getConsultationEmailTemplate(
     timeZoneName: "short",
   });
 
+  // Clean phone number for tel: link (remove spaces, dashes, parentheses)
+  const cleanPhone = phone ? phone.replace(/[\s\-\(\)\+]/g, "") : "";
+
+  // Generate calendar invitation link (Google Calendar)
+  const calendarTitle = encodeURIComponent(`Consultation with ${name}`);
+  const calendarDetails = encodeURIComponent(
+    `Consultation request from ${name}\n\nServices interested in: ${services}\n\nMessage: ${message}`,
+  );
+  const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calendarTitle}&details=${calendarDetails}&dates=${new Date().toISOString().replace(/-|:|\.\d+/g, "")}/${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().replace(/-|:|\.\d+/g, "")}`;
+
+  // Generate WhatsApp link
+  const whatsappMessage = encodeURIComponent(
+    `Hi ${name}, thank you for your consultation request with Satax Advisors. I'd like to discuss your requirements regarding: ${services}. When would be a good time to connect?`,
+  );
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${whatsappMessage}`;
+
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
       <title>New Consultation Request - Satax Advisors</title>
       <style>
         * {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
+          -webkit-text-size-adjust: 100%;
+          -ms-text-size-adjust: 100%;
         }
         
         body {
@@ -48,11 +67,12 @@ export function getConsultationEmailTemplate(
           color: #1f2937;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           margin: 0;
-          padding: 20px;
+          padding: 16px;
         }
         
         .container {
           max-width: 600px;
+          width: 100%;
           margin: 0 auto;
           background: #ffffff;
           border-radius: 20px;
@@ -62,7 +82,7 @@ export function getConsultationEmailTemplate(
         
         .header {
           background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-          padding: 40px 30px;
+          padding: 40px 24px;
           text-align: center;
           position: relative;
           overflow: hidden;
@@ -87,6 +107,7 @@ export function getConsultationEmailTemplate(
           letter-spacing: -0.5px;
           position: relative;
           z-index: 1;
+          word-break: break-word;
         }
         
         .header p {
@@ -110,7 +131,7 @@ export function getConsultationEmailTemplate(
         }
         
         .content {
-          padding: 40px;
+          padding: 32px 24px;
         }
         
         .greeting {
@@ -125,7 +146,7 @@ export function getConsultationEmailTemplate(
         .info-grid {
           background: #f9fafb;
           border-radius: 16px;
-          padding: 25px;
+          padding: 20px;
           margin: 25px 0;
         }
         
@@ -144,10 +165,10 @@ export function getConsultationEmailTemplate(
         }
         
         .info-icon {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           background: #eff6ff;
-          border-radius: 10px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -156,20 +177,21 @@ export function getConsultationEmailTemplate(
         }
         
         .info-icon span {
-          font-size: 20px;
+          font-size: 22px;
         }
         
         .info-content {
           flex: 1;
+          min-width: 0;
         }
         
         .info-label {
-          font-size: 12px;
+          font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 1px;
           font-weight: 600;
           color: #6b7280;
-          margin-bottom: 5px;
+          margin-bottom: 6px;
         }
         
         .info-value {
@@ -177,6 +199,18 @@ export function getConsultationEmailTemplate(
           font-weight: 500;
           color: #1f2937;
           line-height: 1.4;
+          word-break: break-word;
+        }
+        
+        .info-value a {
+          color: #3b82f6;
+          text-decoration: none;
+          display: inline-block;
+          word-break: break-all;
+        }
+        
+        .info-value a:active {
+          color: #1e3a8a;
         }
         
         .services-list {
@@ -190,6 +224,7 @@ export function getConsultationEmailTemplate(
           color: #1f2937;
           display: flex;
           align-items: center;
+          flex-wrap: wrap;
         }
         
         .services-list li::before {
@@ -197,6 +232,7 @@ export function getConsultationEmailTemplate(
           color: #10b981;
           font-weight: bold;
           margin-right: 10px;
+          flex-shrink: 0;
         }
         
         .message-box {
@@ -216,6 +252,7 @@ export function getConsultationEmailTemplate(
         .message-content {
           color: #451a03;
           line-height: 1.6;
+          word-break: break-word;
         }
         
         .action-buttons {
@@ -226,40 +263,59 @@ export function getConsultationEmailTemplate(
         .button {
           display: inline-block;
           background: #1e3a8a;
-          color: white;
-          padding: 12px 30px;
-          border-radius: 8px;
+          color: white !important;
+          padding: 14px 28px;
+          border-radius: 10px;
           text-decoration: none;
           font-weight: 600;
-          margin: 0 5px;
-          transition: transform 0.2s;
+          margin: 6px 4px;
+          transition: all 0.2s ease;
+          font-size: 15px;
+          text-align: center;
+          cursor: pointer;
+          border: none;
         }
         
-        .button:hover {
-          transform: translateY(-2px);
+        .button:active {
+          transform: scale(0.97);
+          background: #152e6b;
         }
         
         .button-secondary {
-          background: #6b7280;
+          background: #10b981;
+        }
+        
+        .button-secondary:active {
+          background: #0e9f6e;
+        }
+        
+        .button-outline {
+          background: transparent;
+          border: 2px solid #1e3a8a;
+          color: #1e3a8a !important;
+        }
+        
+        .button-outline:active {
+          background: #eff6ff;
         }
         
         .timestamp {
           background: #f3f4f6;
           border-radius: 12px;
-          padding: 15px;
+          padding: 16px;
           margin: 25px 0;
           text-align: center;
         }
         
         .timestamp p {
-          margin: 5px 0;
+          margin: 6px 0;
           font-size: 13px;
           color: #6b7280;
         }
         
         .footer {
           background: #1f2937;
-          padding: 30px;
+          padding: 24px;
           text-align: center;
           border-top: 1px solid #374151;
         }
@@ -267,7 +323,8 @@ export function getConsultationEmailTemplate(
         .footer p {
           color: #9ca3af;
           font-size: 12px;
-          margin: 5px 0;
+          margin: 6px 0;
+          line-height: 1.5;
         }
         
         .footer a {
@@ -287,9 +344,22 @@ export function getConsultationEmailTemplate(
           vertical-align: middle;
         }
         
+        /* Mobile responsive styles */
         @media only screen and (max-width: 600px) {
+          body {
+            padding: 12px;
+          }
+          
           .content {
-            padding: 25px;
+            padding: 24px 20px;
+          }
+          
+          .header {
+            padding: 32px 20px;
+          }
+          
+          .header h1 {
+            font-size: 24px;
           }
           
           .info-row {
@@ -297,13 +367,49 @@ export function getConsultationEmailTemplate(
           }
           
           .info-icon {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            width: 40px;
+            height: 40px;
+          }
+          
+          .info-icon span {
+            font-size: 20px;
           }
           
           .button {
             display: block;
-            margin: 10px 0;
+            width: 100%;
+            margin: 8px 0;
+            padding: 14px 20px;
           }
+          
+          .info-grid {
+            padding: 16px;
+          }
+          
+          .greeting {
+            font-size: 17px;
+          }
+        }
+        
+        /* Small phone styles */
+        @media only screen and (max-width: 380px) {
+          .content {
+            padding: 20px 16px;
+          }
+          
+          .header h1 {
+            font-size: 22px;
+          }
+          
+          .badge {
+            font-size: 10px;
+          }
+        }
+        
+        /* Ensure buttons are tappable */
+        .button, .info-value a {
+          -webkit-tap-highlight-color: transparent;
         }
       </style>
     </head>
@@ -311,8 +417,8 @@ export function getConsultationEmailTemplate(
       <div class="container">
         <!-- Header Section -->
         <div class="header">
-          <h1>New Consultation Request</h1>
-          <p>Urgent follow-up required</p>
+          <h1>✨ New Consultation Request</h1>
+          <p>Immediate follow-up recommended</p>
           <div class="badge">
             ⚡ Priority: High
           </div>
@@ -324,9 +430,9 @@ export function getConsultationEmailTemplate(
             👋 Hello Satax Team,
           </div>
           
-          <p style="margin-bottom: 20px; color: #4b5563;">
+          <p style="margin-bottom: 20px; color: #4b5563; font-size: 15px;">
             A potential client has just submitted a consultation request through your website. 
-            Please review the details below and follow up within <strong>24 hours</strong> for best conversion.
+            Please review the details below and follow up within <strong style="color:#1e3a8a;">24 hours</strong> for best conversion.
           </p>
           
           <!-- Client Information Grid -->
@@ -348,7 +454,19 @@ export function getConsultationEmailTemplate(
               <div class="info-content">
                 <div class="info-label">Email Address</div>
                 <div class="info-value">
-                  <a href="mailto:${email}" style="color: #3b82f6; text-decoration: none;">${email}</a>
+                  <a href="mailto:${email}?subject=Regarding%20your%20consultation%20request%20with%20Satax%20Advisors&body=Hi%20${encodeURIComponent(name)}%2C%0A%0AThank%20you%20for%20reaching%20out%20to%20Satax%20Advisors.%20I%20received%20your%20consultation%20request%20regarding%3A%20${encodeURIComponent(services)}.%0A%0AI'd%20love%20to%20discuss%20this%20further%20and%20understand%20your%20requirements%20better.%20When%20would%20be%20a%20good%20time%20for%20a%20quick%20call%3F%0A%0ABest%20regards%2C%0A%0A[Your%20Name]%0ASatax%20Advisors">${email}</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-row">
+              <div class="info-icon">
+                <span>📞</span>
+              </div>
+              <div class="info-content">
+                <div class="info-label">Phone Number</div>
+                <div class="info-value">
+                  ${phone ? `<a href="tel:${cleanPhone}">${phone}</a>` : "Not provided"}
                 </div>
               </div>
             </div>
@@ -366,20 +484,13 @@ export function getConsultationEmailTemplate(
           
           <!-- Services Section -->
           <div style="margin: 25px 0;">
-            <h3 style="color: #1f2937; margin-bottom: 15px; display: flex; align-items: center;">
+            <h3 style="color: #1f2937; margin-bottom: 15px; font-size: 18px; display: flex; align-items: center; flex-wrap: wrap;">
               📋 Services Requested
               <span class="priority-badge">${services ? services.split(",").length : 0} Service${services && services.split(",").length !== 1 ? "s" : ""}</span>
             </h3>
             <div style="background: #f0fdf4; border-radius: 12px; padding: 20px;">
               <ul class="services-list">
-                ${
-                  services
-                    ? services
-                        .split(", ")
-                        .map((s) => `<li>${s.trim()}</li>`)
-                        .join("")
-                    : "<li>No specific services selected</li>"
-                }
+                ${formattedServices}
               </ul>
             </div>
           </div>
@@ -392,38 +503,46 @@ export function getConsultationEmailTemplate(
             </div>
           </div>
           
-          <!-- Action Buttons -->
+          <!-- Action Buttons - ALL WORKING -->
           <div class="action-buttons">
-            <a href="mailto:${email}" class="button">✉️ Reply to Client</a>
-            <a href="#" class="button button-secondary">📅 Schedule Meeting</a>
+            <a href="mailto:${email}?subject=Regarding%20your%20consultation%20request%20with%20Satax%20Advisors&body=Hi%20${encodeURIComponent(name)}%2C%0A%0AThank%20you%20for%20reaching%20out%20to%20Satax%20Advisors.%20I%20received%20your%20consultation%20request%20regarding%3A%20${encodeURIComponent(services)}.%0A%0AI'd%20love%20to%20discuss%20this%20further%20and%20understand%20your%20requirements%20better.%20When%20would%20be%20a%20good%20time%20for%20a%20quick%20call%3F%0A%0ABest%20regards%2C%0A%0A[Your%20Name]%0ASatax%20Advisors" class="button">✉️ Email Client</a>
+            
+            ${phone ? `<a href="tel:${cleanPhone}" class="button button-secondary">📞 Call Client</a>` : ""}
+            
+            ${phone ? `<a href="${whatsappUrl}" class="button button-outline" style="border-color:#25D366; color:#075E54 !important;">💬 WhatsApp</a>` : ""}
+            
+            <a href="${calendarUrl}" target="_blank" class="button button-outline" style="border-color:#4285F4; color:#4285F4 !important;">📅 Schedule Meeting</a>
           </div>
           
           <!-- Quick Actions Note -->
           <div class="timestamp">
-            <p>📌 <strong>Next Steps:</strong></p>
-            <p>✓ Acknowledge receipt within 4 hours</p>
-            <p>✓ Share relevant case studies or portfolio</p>
-            <p>✓ Propose a 15-30 min discovery call</p>
-            <p>✓ Follow up if no response in 48 hours</p>
+            <p>📌 <strong>Follow-up Checklist:</strong></p>
+            <p>✓ <strong>Email</strong> - Click the email button above to reply</p>
+            <p>✓ <strong>Call</strong> - Use phone button for direct contact</p>
+            <p>✓ <strong>WhatsApp</strong> - Send quick text message</p>
+            <p>✓ <strong>Calendar</strong> - Schedule discovery call</p>
+            <p style="margin-top: 10px; font-size: 12px; color: #ef4444;">⏰ Response within 4 hours = 3x higher conversion</p>
           </div>
           
-          <!-- Lead Quality Score (Mock) -->
+          <!-- Lead Quality Score -->
           <div style="text-align: center; margin-top: 20px;">
-            <span style="background: #e5e7eb; padding: 5px 12px; border-radius: 20px; font-size: 11px; color: #6b7280;">
-              🎯 Lead Quality Score: ${services && message ? "High" : services || message ? "Medium" : "Low"}
+            <span style="background: #e5e7eb; padding: 6px 14px; border-radius: 20px; font-size: 12px; color: #6b7280; display: inline-block;">
+              🎯 Lead Quality: ${services && message && phone ? "🔥 Hot Lead" : services && (message || phone) ? "💛 Warm Lead" : "💙 Cold Lead"}
             </span>
           </div>
         </div>
         
         <!-- Footer Section -->
         <div class="footer">
-          <p>📧 This is an automated notification from your <strong>Satax Advisors</strong> website</p>
-          <p>🕐 Response time expectation: Within 1 business day</p>
-          <p>🔒 Client data is confidential - do not forward without consent</p>
-          <p style="margin-top: 15px;">
-            <a href="#">Manage Notifications</a> | 
-            <a href="#">View in CRM</a> | 
-            <a href="#">Report Issue</a>
+          <p>📧 Automated notification from <strong>Satax Advisors</strong></p>
+          <p>🕐 Target response: Within 4 business hours</p>
+          <p>🔒 Confidential client information</p>
+          <p style="margin-top: 12px;">
+            <a href="#" style="color:#60a5fa;">Notification Settings</a> | 
+            <a href="#" style="color:#60a5fa;">View in CRM</a>
+          </p>
+          <p style="margin-top: 12px; font-size: 10px;">
+            This is an automated message. Please do not reply to this email.
           </p>
         </div>
       </div>
