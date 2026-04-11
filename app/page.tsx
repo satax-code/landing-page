@@ -1,9 +1,27 @@
-import Image from "next/image";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { Hero } from "@/components/sections/Hero";
+import { About } from "@/components/sections/About";
+import { MissionValues } from "@/components/sections/MissionValues";
+import { Services } from "@/components/sections/Services";
+import { Team } from "@/components/sections/Team";
+import { Careers } from "@/components/sections/Careers";
+import { Contact } from "@/components/sections/Contact";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <h1 className="text-3xl font-bold underline">Hello world!</h1>
-    </div>
+    <>
+      <Navbar />
+      <main className="flex-1 w-full">
+        <Hero />
+        <About />
+        <MissionValues />
+        <Services />
+        <Team />
+        <Careers />
+        <Contact />
+      </main>
+      <Footer />
+    </>
   );
 }
