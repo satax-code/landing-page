@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Satax Advisors | Modern Digital-First Taxation & Accounting",
-  description: "Strategic, Accurate, and Tax-optimized solutions enabling business owners to scale with confidence and financial clarity.",
+  title: "Satax Advisors | Modern Digital-First Taxation & Accounting ",
+  description:
+    "Strategic, Accurate, and Tax-optimized solutions enabling business owners to scale with confidence and financial clarity....",
 };
 
 export default function RootLayout({
