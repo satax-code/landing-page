@@ -78,11 +78,11 @@ export function Footer() {
               </li>
               <li className="flex items-center space-x-3">
                 <Phone className="text-amber-500 shrink-0" size={18} />
-                <span>+91-8319022916 <br className="md:hidden"/> <span className="hidden md:inline">|</span> 011-46045178</span>
+                <span>{process.env.NEXT_PUBLIC_CONTACT_PHONE} <br className="md:hidden"/> <span className="hidden md:inline">|</span> {process.env.NEXT_PUBLIC_CONTACT_LANDLINE}</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="text-amber-500 shrink-0" size={18} />
-                <a href="mailto:info@satax.in" className="hover:text-white transition-colors">info@satax.in</a>
+                <a href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`} className="hover:text-white transition-colors">{process.env.NEXT_PUBLIC_CONTACT_EMAIL}</a>
               </li>
             </ul>
           </div>

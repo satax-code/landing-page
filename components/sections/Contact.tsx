@@ -218,7 +218,7 @@ export function Contact() {
                 <div>
                   <h4 className="font-bold text-foreground">Phone</h4>
                   <p className="text-slate-600 dark:text-slate-400 mt-1">
-                    +91-8319022916 <br /> 011-46045178
+                    {process.env.NEXT_PUBLIC_CONTACT_PHONE} <br /> {process.env.NEXT_PUBLIC_CONTACT_LANDLINE}
                   </p>
                 </div>
               </div>
@@ -231,10 +231,10 @@ export function Contact() {
                   <h4 className="font-bold text-foreground">Email</h4>
                   <p className="text-slate-600 dark:text-slate-400 mt-1">
                     <a
-                      href="mailto:info@satax.in"
+                      href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`}
                       className="hover:text-primary transition-colors"
                     >
-                      info@satax.in
+                      {process.env.NEXT_PUBLIC_CONTACT_EMAIL}
                     </a>
                   </p>
                 </div>

@@ -32,7 +32,7 @@ export function Careers() {
             </p>
 
             <a 
-              href="mailto:info@satax.in" 
+              href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`} 
               className="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-primary bg-white rounded-full hover:bg-slate-100 transition-all shadow-xl group"
             >
               Share Your Resume
