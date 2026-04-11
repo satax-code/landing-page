@@ -28,8 +28,15 @@ const servicesList = [
 ];
 
 export function Contact() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    countryCode: "+91",
+    phone: "",
+    message: "",
+  });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [showError, setShowError] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -47,27 +54,75 @@ export function Contact() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    
+    if (name === "phone") {
+      // Only allow numeric characters for phone
+      const numbersOnly = value.replace(/\D/g, "");
+      if (numbersOnly.length > 10) return;
+      setFormData((prev) => ({ ...prev, [name]: numbersOnly }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
   const toggleService = (srv: string) => {
-    setSelectedServices((prev) =>
-      prev.includes(srv) ? prev.filter((s) => s !== srv) : [...prev, srv],
-    );
-    if (showError) setShowError(false);
+    setSelectedServices((prev) => {
+      const newSelected = prev.includes(srv)
+        ? prev.filter((s) => s !== srv)
+        : [...prev, srv];
+        
+      if (newSelected.length > 0 && errors.services) {
+        setErrors((errs) => ({ ...errs, services: "" }));
+      }
+      return newSelected;
+    });
+  };
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = "Full name is required";
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = "Email address is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^\d{10}$/.test(formData.phone.replace(/[\s\-]/g, ""))) {
+      newErrors.phone = "Please enter a valid 10-digit phone number";
+    }
+    
+    if (selectedServices.length === 0) {
+      newErrors.services = "Please select at least one service";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (selectedServices.length === 0) {
-      setShowError(true);
-      return;
-    }
+    if (!validate()) return;
 
     setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
     const data = {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      phone: `${formData.get("countryCode")} ${formData.get("phone")}`,
-      message: formData.get("message"),
+      name: formData.name,
+      email: formData.email,
+      phone: `${formData.countryCode} ${formData.phone}`,
+      message: formData.message,
       services: selectedServices.join(", "),
     };
 
@@ -81,7 +136,13 @@ export function Contact() {
       if (res.ok) {
         alert("Thanks for reaching out! Your request was sent successfully.");
         // Reset form
-        (e.target as HTMLFormElement).reset();
+        setFormData({
+          name: "",
+          email: "",
+          countryCode: "+91",
+          phone: "",
+          message: "",
+        });
         setSelectedServices([]);
       } else {
         alert("Failed to send your request. Please try again.");
@@ -184,11 +245,12 @@ export function Contact() {
           >
             <form
               onSubmit={handleSubmit}
+              noValidate
               className="bg-white dark:bg-slate-800 rounded-3xl p-8 sm:p-10 border border-border shadow-xl relative overflow-hidden"
             >
               <h3 className="text-2xl font-bold mb-6">Send us a Message</h3>
 
-              <div className="space-y-4 relative z-10">
+              <div className="space-y-5 relative z-10">
                 <div>
                   <label
                     htmlFor="name"
@@ -197,78 +259,99 @@ export function Contact() {
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
-                    required
                     type="text"
                     id="name"
                     name="name"
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className={cn(
+                      "w-full px-4 py-3 rounded-lg border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm",
+                      errors.name ? "border-red-500" : "border-border"
+                    )}
                     placeholder="John Doe"
                     disabled={isSubmitting}
                   />
+                  {errors.name && <p className="text-red-500 text-xs mt-1.5">{errors.name}</p>}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={cn(
+                      "w-full px-4 py-3 rounded-lg border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm",
+                      errors.email ? "border-red-500" : "border-border"
+                    )}
+                    placeholder="john@company.com"
+                    disabled={isSubmitting}
+                  />
+                  {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email}</p>}
+                </div>
+                  
+                <div>
+                  <label
+                    htmlFor="phone"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      name="countryCode"
+                      value={formData.countryCode}
+                      onChange={handleInputChange}
+                      className={cn(
+                        "w-24 px-2 py-3 rounded-lg border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm text-slate-700 dark:text-slate-300 cursor-pointer",
+                        errors.phone ? "border-red-500" : "border-border"
+                      )}
+                      disabled={isSubmitting}
                     >
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
+                      <option value="+91">+91 (IN)</option>
+                      <option value="+1">+1 (US/CA)</option>
+                      <option value="+44">+44 (UK)</option>
+                      <option value="+61">+61 (AU)</option>
+                      <option value="+971">+971 (AE)</option>
+                      <option value="+65">+65 (SG)</option>
+                    </select>
                     <input
-                      required
-                      type="email"
-                      id="email"
-                      name="email"
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
-                      placeholder="john@company.com"
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      maxLength={10}
+                      inputMode="numeric"
+                      className={cn(
+                        "flex-1 px-4 py-3 rounded-lg border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm",
+                        errors.phone ? "border-red-500" : "border-border"
+                      )}
+                      placeholder="98765 43210"
                       disabled={isSubmitting}
                     />
                   </div>
-                  <div>
-                    <label
-                      htmlFor="phone"
-                      className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-                    >
-                      Phone Number <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        name="countryCode"
-                        className="w-24 px-2 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
-                        disabled={isSubmitting}
-                      >
-                        <option value="+91">+91 (IN)</option>
-                        <option value="+1">+1 (US/CA)</option>
-                        <option value="+44">+44 (UK)</option>
-                        <option value="+61">+61 (AU)</option>
-                        <option value="+971">+971 (AE)</option>
-                        <option value="+65">+65 (SG)</option>
-                      </select>
-                      <input
-                        required
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        className="flex-1 px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
-                        placeholder="98765 43210"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
+                  {errors.phone && <p className="text-red-500 text-xs mt-1.5">{errors.phone}</p>}
                 </div>
 
                 <div className="relative" ref={dropdownRef}>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Services Interested In{" "}
-                    <span className="text-red-500">*</span>
+                    Services Interested In <span className="text-red-500">*</span>
                   </label>
 
                   <div
                     onClick={() => !isSubmitting && setIsOpen(!isOpen)}
                     className={cn(
-                      "w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 cursor-pointer flex justify-between items-center transition-all min-h-[46px]",
+                      "w-full px-4 py-3 rounded-lg border bg-slate-50 dark:bg-slate-900 cursor-pointer flex justify-between items-center transition-all min-h-[46px]",
                       isSubmitting && "opacity-50 cursor-not-allowed",
+                      errors.services ? "border-red-500" : "border-border"
                     )}
                   >
                     <div className="flex flex-wrap gap-1">
@@ -280,7 +363,7 @@ export function Contact() {
                         selectedServices.map((srv) => (
                           <span
                             key={srv}
-                            className="bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-md flex items-center"
+                            className="bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-md flex items-center mt-1"
                           >
                             {srv}
                             <button
@@ -302,7 +385,7 @@ export function Contact() {
                       size={18}
                       className={cn(
                         "text-slate-400 transition-transform shrink-0 ml-2",
-                        isOpen && "rotate-180",
+                        isOpen && "rotate-180"
                       )}
                     />
                   </div>
@@ -331,7 +414,7 @@ export function Contact() {
                                   "w-4 h-4 rounded border flex flex-shrink-0 items-center justify-center transition-colors ml-3",
                                   isSelected
                                     ? "bg-primary border-primary text-white"
-                                    : "border-slate-300 dark:border-slate-600",
+                                    : "border-slate-300 dark:border-slate-600"
                                 )}
                               >
                                 {isSelected && (
@@ -345,9 +428,9 @@ export function Contact() {
                     )}
                   </AnimatePresence>
 
-                  {showError && (
-                    <p className="text-red-500 text-xs mt-2">
-                      Please select at least one service.
+                  {errors.services && (
+                    <p className="text-red-500 text-xs mt-1.5">
+                      {errors.services}
                     </p>
                   )}
                 </div>
@@ -362,6 +445,8 @@ export function Contact() {
                   <textarea
                     id="message"
                     name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
                     rows={3}
                     className="w-full px-4 py-3 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none text-sm"
                     placeholder="Tell us about your business needs..."
